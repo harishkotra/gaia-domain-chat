@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaia LLM Playground</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Poppins:wght@400;500;600;700&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* Modern & Elegant Color Palette */
+        :root {
+            --primary-blue: #2c58e6; /* A vibrant, modern blue */
+            --primary-blue-dark: #2242b3; /* Darker for hover states */
+            --accent-gray: #f0f2f5; /* Light gray for main background */
+            --white: #ffffff;
+            --light-gray: #e8ebf0; /* Slightly darker than accent-gray, for borders/shadows */
+            --dark-gray: #344054; /* Darker text */
+            --medium-gray: #6b7280; /* Medium text/placeholder */
+            --border-color: #d1d5db; /* Soft border */
+            --shadow-light: rgba(0, 0, 0, 0.08); /* Subtle shadow */
+            --shadow-medium: rgba(0, 0, 0, 0.15); /* Stronger shadow */
+            --border-radius-base: 12px;
+            --border-radius-sm: 8px;
+            --transition-fast: 0.15s ease-out;
+            --transition-medium: 0.3s ease-in-out;
+
+            /* Fonts */
+            --font-body: 'Inter', sans-serif;
+            --font-heading: 'Poppins', sans-serif;
+            --font-code: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace; /* Fira Code for code! */
+        }
+
+        /* Basic Reset & Body Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            line-height: 1.6;
+            background-color: var(--accent-gray);
+            color: var(--dark-gray);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Prevent body scroll */
+            padding: 20px; /* Some padding around the app container */
+        }
+
+        #gaia-llm-app-container {
+            display: flex;
+            width: 100%;
+            max-width: 1100px; /* Slightly adjusted max width */
+            height: 85vh; /* Flexible height */
+            min-height: 550px;
+            max-height: 750px;
+            background-color: var(--white);
+            border-radius: var(--border-radius-base);
+            box-shadow: 0 10px 30px var(--shadow-medium); /* More pronounced shadow */
+            overflow: hidden;
+            border: 1px solid var(--light-gray); /* Subtle border */
+        }
+
+        /* Left Sidebar */
+        #gaia-llm-sidebar {
+            width: 280px; /* Slightly wider sidebar */
+            padding: 25px 0;
+            border-right: 1px solid var(--light-gray);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background-color: var(--white);
+            flex-shrink: 0;
+        }
+
+        .gaia-llm-sidebar-header {
+            padding: 0 25px 20px;
+            font-family: var(--font-heading);
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--primary-blue);
+            border-bottom: 1px solid var(--light-gray);
+            margin-bottom: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .gaia-llm-sidebar-item {
+            display: flex;
+            align-items: center; /* Align items to center vertically */
+            padding: 14px 25px; /* Increased padding */
+            cursor: pointer;
+            transition: background-color var(--transition-fast), color var(--transition-fast);
+            font-size: 0.98em;
+            font-weight: 500;
+            color: var(--dark-gray);
+            gap: 12px; /* Increased space between icon and text content */
+        }
+
+        .gaia-llm-sidebar-item:hover {
+            background-color: var(--light-gray);
+            color: var(--primary-blue);
+        }
+
+        .gaia-llm-sidebar-item.active {
+            background-color: var(--primary-blue); /* Primary blue for active */
+            color: var(--white);
+            font-weight: 600;
+            border-left: 5px solid var(--primary-blue-dark); /* Deeper border color */
+            padding-left: 20px; /* Adjust padding due to border */
+            box-shadow: 3px 0 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on active item */
+        }
+        .gaia-llm-sidebar-item.active:hover {
+            background-color: var(--primary-blue-dark);
+            color: var(--white);
+        }
+
+
+        .gaia-llm-sidebar-item img {
+            width: 32px; /* Larger icons */
+            height: 32px;
+            border-radius: var(--border-radius-sm);
+            object-fit: cover; /* Ensure image covers the area */
+            box-shadow: 0 2px 6px var(--shadow-light); /* Nicer shadow */
+            transition: transform var(--transition-fast);
+        }
+        .gaia-llm-sidebar-item:hover img {
+            transform: scale(1.05); /* Slight grow on hover */
+        }
+        .gaia-llm-sidebar-item.active img {
+            box-shadow: none; /* No shadow on active to simplify */
+        }
+
+        /* Styles for the new text container (domain name + model name) */
+        .gaia-llm-sidebar-text {
+            display: flex;
+            flex-direction: column; /* Stack name and model vertically */
+            justify-content: center; /* Vertically center if icon is taller */
+            flex-grow: 1; /* Allow it to take available space */
+            gap: 2px; /* Small gap between name and model */
+            line-height: 1.3; /* Adjust line height for better spacing */
+        }
+
+        .gaia-llm-sidebar-name {
+            font-weight: 600; /* Main name bolder */
+            font-size: 1em; /* Slightly larger than model text */
+            color: inherit; /* Inherit color from parent (.gaia-llm-sidebar-item) */
+        }
+
+        .gaia-llm-sidebar-model {
+            font-size: 0.55em; /* Smaller font for model */
+            color: var(--medium-gray);
+            background-color: var(--light-gray); /* Match screenshot's light gray background */
+            padding: 4px 8px; /* Padding for the "pill" effect */
+            border-radius: var(--border-radius-sm); /* Rounded corners for the pill */
+            display: inline-block; /* Essential for padding and background to work like a block */
+            align-self: flex-start; /* Ensure it doesn't stretch full width in column */
+            margin-top: 2px; /* Small space from the name */
+            transition: background-color var(--transition-fast), color var(--transition-fast);
+            max-width: 100%; /* Ensure it doesn't overflow */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Add ellipsis for long model names */
+            white-space: nowrap; /* Prevent wrapping for ellipsis */
+        }
+
+        /* Adjustments for active state on text elements */
+        .gaia-llm-sidebar-item.active .gaia-llm-sidebar-name {
+            color: var(--white); /* Ensure name text is white in active state */
+        }
+        .gaia-llm-sidebar-item.active .gaia-llm-sidebar-model {
+            background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent white for active pill */
+            color: var(--white); /* Ensure model text is white in active state */
+        }
+
+
+        /* Right Content Area */
+        #gaia-llm-main-content {
+            flex-grow: 1;
+            padding: 35px; /* Increased padding */
+            display: flex;
+            flex-direction: column;
+            background-color: var(--accent-gray); /* Lighter main background */
+            overflow-y: auto;
+        }
+
+        #gaia-llm-main-content h2 {
+            margin-top: 0;
+            margin-bottom: 10px; /* Reduced margin to bring description closer */
+            font-family: var(--font-heading);
+            font-size: 1.8em; /* Larger heading */
+            font-weight: 600;
+            color: var(--dark-gray);
+            text-align: center;
+            letter-spacing: -0.8px;
+        }
+
+        /* Style for model description */
+        .gaia-llm-model-description {
+            font-size: 0.95em;
+            color: var(--medium-gray);
+            text-align: center;
+            margin-bottom: 25px; /* Space between description and input area */
+            line-height: 1.5;
+            padding: 0 20px; /* Add horizontal padding to description */
+        }
+
+
+        .gaia-llm-input-area {
+            display: flex;
+            gap: 20px; /* Increased gap */
+            margin-bottom: 30px;
+            align-items: flex-end;
+            padding: 15px; /* Add some padding around the input/button area */
+            background-color: var(--white);
+            border-radius: var(--border-radius-base);
+            box-shadow: 0 4px 15px var(--shadow-light); /* Shadow for the input box */
+        }
+
+        #gaia-llm-user-input {
+            flex-grow: 1;
+            padding: 15px 20px; /* Larger padding */
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            font-size: 1.05em; /* Slightly larger font */
+            font-family: var(--font-body);
+            resize: vertical;
+            min-height: 80px; /* Taller input */
+            max-height: 180px;
+            background-color: var(--white);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+            color: var(--dark-gray);
+        }
+        #gaia-llm-user-input::placeholder {
+            color: var(--medium-gray);
+            opacity: 0.8;
+        }
+
+        #gaia-llm-user-input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 4px rgba(44, 88, 230, 0.2); /* Softer focus ring */
+            outline: none;
+        }
+
+        #gaia-llm-compute-btn {
+            padding: 14px 30px; /* Larger button */
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-family: var(--font-heading);
+            font-size: 1.05em;
+            font-weight: 600;
+            transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+            flex-shrink: 0;
+            letter-spacing: 0.2px;
+        }
+
+        #gaia-llm-compute-btn:hover:not(:disabled) {
+            background-color: var(--primary-blue-dark);
+            transform: translateY(-2px); /* More pronounced lift */
+            box-shadow: 0 6px 12px rgba(44, 88, 230, 0.3); /* Button shadow */
+        }
+
+        #gaia-llm-compute-btn:disabled {
+            background-color: #cccccc;
+            color: #999999;
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .gaia-llm-response-area {
+            flex-grow: 1;
+            background-color: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-base);
+            padding: 25px; /* Larger padding */
+            min-height: 200px; /* Minimum height for response box */
+            /* display: flex; Use flex to center content */
+            align-items: center; /* Center vertically */
+            justify-content: center; /* Center horizontally */
+            text-align: center;
+            overflow-y: auto;
+            line-height: 1.7; /* Increased line height for readability */
+            font-size: 1.05em;
+            /* white-space: pre-wrap; This might conflict with <pre> so manage within markdown */
+            word-break: break-word;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05); /* Subtle inset shadow */
+            color: var(--dark-gray);
+            font-family: var(--font-body);
+        }
+
+        #gaia-llm-llm-response {
+            width: 100%;
+            text-align: left;
+            /* Reset padding/margin of markdown elements for consistency */
+            /* Add some margin to top level children within the response */
+            padding: 0; /* Clear container padding if markdown creates its own */
+        }
+
+        /* --- Markdown Styling for #gaia-llm-llm-response content --- */
+        #gaia-llm-llm-response p,
+        #gaia-llm-llm-response ul,
+        #gaia-llm-llm-response ol,
+        #gaia-llm-llm-response pre {
+            margin-bottom: 1em; /* Spacing between blocks */
+        }
+        #gaia-llm-llm-response p:last-child,
+        #gaia-llm-llm-response ul:last-child,
+        #gaia-llm-llm-response ol:last-child,
+        #gaia-llm-llm-response pre:last-child {
+            margin-bottom: 0; /* No margin after last element */
+        }
+
+        #gaia-llm-llm-response ul,
+        #gaia-llm-llm-response ol {
+            padding-left: 25px; /* Indent lists */
+        }
+        #gaia-llm-llm-response li {
+            margin-bottom: 0.5em;
+        }
+
+        /* Code Block Styling */
+        #gaia-llm-llm-response pre {
+            background-color: #f6f8fa; /* Light background for code */
+            border: 1px solid var(--light-gray);
+            border-radius: var(--border-radius-sm);
+            padding: 15px;
+            font-family: var(--font-code); /* Monospace font for code */
+            font-size: 0.9em;
+            line-height: 1.4;
+            overflow-x: auto; /* Allow horizontal scrolling for long lines */
+            white-space: pre-wrap; /* Ensure wrapping for pre-formatted text */
+            word-break: break-all; /* Break long words in code */
+        }
+
+        /* Inline Code Styling */
+        #gaia-llm-llm-response code {
+            background-color: #e6e8eb; /* Slightly darker than pre for inline */
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--font-code);
+            font-size: 0.9em;
+            color: #c44040; /* Distinct color for inline code */
+        }
+
+        /* Headers within markdown */
+        #gaia-llm-llm-response h1,
+        #gaia-llm-llm-response h2,
+        #gaia-llm-llm-response h3,
+        #gaia-llm-llm-response h4,
+        #gaia-llm-llm-response h5,
+        #gaia-llm-llm-response h6 {
+            font-family: var(--font-heading);
+            color: var(--dark-gray);
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+        }
+        #gaia-llm-llm-response h1 { font-size: 1.8em; }
+        #gaia-llm-llm-response h2 { font-size: 1.6em; }
+        #gaia-llm-llm-response h3 { font-size: 1.4em; }
+        #gaia-llm-llm-response h4 { font-size: 1.2em; }
+
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            #gaia-llm-app-container {
+                flex-direction: column;
+                height: 98vh; /* Use almost full height */
+                min-height: unset;
+                max-height: unset;
+                width: 98vw; /* Use almost full width */
+                border-radius: 0; /* Full screen look */
+                box-shadow: none; /* No shadow for full screen */
+            }
+
+            #gaia-llm-sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 120px; /* Smaller height for horizontal sidebar */
+                flex-direction: row;
+                overflow-x: auto;
+                overflow-y: hidden;
+                border-right: none;
+                border-bottom: 1px solid var(--light-gray);
+                padding: 10px 0;
+            }
+
+            .gaia-llm-sidebar-header {
+                display: none;
+            }
+
+            .gaia-llm-sidebar-item {
+                flex-shrink: 0;
+                padding: 10px 18px; /* Adjusted padding for horizontal */
+                border-left: none !important;
+                border-bottom: 4px solid transparent; /* Use bottom border for active state */
+                white-space: nowrap;
+                flex-direction: column; /* Stack icon and text */
+                align-items: center; /* Center items */
+                font-size: 0.9em;
+                gap: 5px;
+            }
+            .gaia-llm-sidebar-item img {
+                width: 28px;
+                height: 28px;
+            }
+            .gaia-llm-sidebar-item.active {
+                border-bottom: 4px solid var(--primary-blue) !important;
+                border-left: none !important;
+                padding-bottom: 6px; /* Adjust padding to make space for border */
+                padding-left: 18px; /* Restore original padding */
+                box-shadow: none; /* Remove item shadow */
+            }
+
+            /* Adjustments for stacked sidebar items on mobile */
+            .gaia-llm-sidebar-text {
+                align-items: center; /* Center the stacked name/model */
+                white-space: normal; /* Allow text to wrap if necessary */
+                text-align: center;
+                gap: 0px; /* Reduce gap when stacked */
+            }
+            .gaia-llm-sidebar-name {
+                white-space: nowrap; /* Keep domain name on one line */
+                font-size: 0.95em;
+            }
+            .gaia-llm-sidebar-model {
+                align-self: center; /* Center the model pill */
+                white-space: nowrap; /* Keep model name on one line */
+                font-size: 0.8em;
+                padding: 3px 6px;
+            }
+
+            #gaia-llm-main-content {
+                padding: 20px;
+            }
+
+            #gaia-llm-main-content h2 {
+                font-size: 1.5em;
+                margin-bottom: 10px;
+            }
+            .gaia-llm-model-description {
+                font-size: 0.9em;
+                margin-bottom: 20px;
+                padding: 0 10px;
+            }
+
+            .gaia-llm-input-area {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px;
+                box-shadow: 0 2px 10px var(--shadow-light);
+            }
+
+            #gaia-llm-user-input {
+                min-height: 70px;
+                padding: 12px 15px;
+            }
+
+            #gaia-llm-compute-btn {
+                width: 100%;
+                padding: 12px 20px;
+            }
+            .gaia-llm-response-area {
+                padding: 20px;
+                min-height: 150px;
+            }
+            /* Markdown adjustments for smaller screens */
+            #gaia-llm-llm-response pre {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gaia-llm-app-container">
+        <!-- Left Sidebar -->
+        <div id="gaia-llm-sidebar">
+            <div class="gaia-llm-sidebar-header">Gaia Domains</div>
+        </div>
+
+        <!-- Right Main Content -->
+        <div id="gaia-llm-main-content">
+            <h2 id="gaia-llm-current-domain-title">Select a Model to Interact With</h2>
+            <p id="gaia-llm-model-description" class="gaia-llm-model-description">Select a model from the left sidebar to see its description and start interacting.</p>
+
+            <div class="gaia-llm-input-area">
+                <textarea id="gaia-llm-user-input" placeholder="Enter your message here..."></textarea>
+                <button id="gaia-llm-compute-btn" disabled>Compute</button>
+            </div>
+
+            <div class="gaia-llm-response-area">
+                <div id="gaia-llm-llm-response">Gaia domain's response will appear here.</div>
+                <div id="gaia-llm-loading-indicator" class="gaia-llm-loading-indicator"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Configuration ---
+            const GAIA_API_KEY = '';
+
+            const domains = [
+                {
+                    id: 'llama3b',
+                    name: 'llama3b.gaia.domains',
+                    model: 'Llama-3.2-3B-Instruct-Q5_K_M',
+                    baseUrl: '/api/proxy/llama3b',
+                    icon: 'https://res.gaianet.ai/domain/avatars/89bf6f0d-4185-4770-9bd0-1cbae692b2cd_gAeyFvY.jpg',
+                    description: 'A powerful and efficient Llama model designed for general text generation and conversational AI tasks. Ideal for a wide range of inquiries.'
+                },
+                {
+                    id: 'nillion',
+                    name: 'nillion.gaia.domains',
+                    model: 'Llama-3.2-3B-Instruct-Q5_K_M',
+                    baseUrl: '/api/proxy/nillion',
+                    icon: 'https://res.gaianet.ai/domain/avatars/99851a67-d58d-4ee0-8a9d-3a15032ce7da_Xzrssws.png',
+                    description: 'Powered by the robust Llama architecture, this model is specifically tailored for Nillion-related queries and technical documentation. Ask about decentralized computation and privacy.'
+                },
+                {
+                    id: 'codifierty',
+                    name: 'codifierty.gaia.domains',
+                    model: 'Qwen2.5-0.5B-Instruct-Q5_K_M',
+                    baseUrl: '/api/proxy/codifierty',
+                    icon: 'https://res.gaianet.ai/domain/avatars/112d7189-2d09-4ece-bcbd-5850b01745e7.png',
+                    description: 'A compact but capable Qwen2.5 model, perfect for quick code snippets, programming explanations, and general development assistance. Optimized for speed and efficiency.'
+                },
+                {
+                    id: 'korean',
+                    name: 'korean.gaia.domains',
+                    model: 'EXAONE-3.5-2.4B-Instruct-Q5_K_M',
+                    baseUrl: '/api/proxy/korean',
+                    icon: 'https://res.gaianet.ai/domain/avatars/89bf6f0d-4185-4770-9bd0-1cbae692b2cd_RIN8nig.jpg',
+                    description: 'An EXAONE model specialized in Korean language processing. Use this model for accurate translations, Korean text generation, and culturally nuanced conversations.'
+                },
+                {
+                    id: 'metamask',
+                    name: 'metamask.gaia.domains',
+                    model: 'Llama-3.2-3B-Instruct-Q5_K_M',
+                    baseUrl: '/api/proxy/metamask',
+                    icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
+                    description: 'Get support and information regarding Metamask wallet functionalities, common issues, and best practices for secure cryptocurrency transactions.'
+                },
+            ];
+
+            let currentDomain = null; // Stores the currently selected domain object
+
+            // --- DOM Elements ---
+            const sidebar = document.getElementById('gaia-llm-sidebar');
+            const mainContentTitle = document.getElementById('gaia-llm-current-domain-title');
+            const modelDescription = document.getElementById('gaia-llm-model-description');
+            const userInput = document.getElementById('gaia-llm-user-input');
+            const computeBtn = document.getElementById('gaia-llm-compute-btn');
+            const llmResponse = document.getElementById('gaia-llm-llm-response');
+            const loadingIndicator = document.getElementById('gaia-llm-loading-indicator');
+
+            // --- Functions ---
+
+            // Renders sidebar items based on the 'domains' array
+            function renderSidebar() {
+                // Clear existing items except the header
+                const existingItems = sidebar.querySelectorAll('.gaia-llm-sidebar-item');
+                existingItems.forEach(item => item.remove());
+
+                domains.forEach(domain => {
+                    const item = document.createElement('div');
+                    item.className = 'gaia-llm-sidebar-item';
+                    item.dataset.domainId = domain.id;
+                    item.innerHTML = `
+                        <img src="${domain.icon}" alt="${domain.name} icon">
+                        <div class="gaia-llm-sidebar-text">
+                            <span class="gaia-llm-sidebar-name">${domain.name}</span>
+                            <span class="gaia-llm-sidebar-model">${domain.model}</span>
+                        </div>
+                    `;
+                    item.addEventListener('click', () => setActiveDomain(domain.id));
+                    sidebar.appendChild(item);
+                });
+            }
+
+            // Sets the active domain, updates UI, and clears input/response
+            function setActiveDomain(domainId) {
+                const selectedDomain = domains.find(d => d.id === domainId);
+                if (!selectedDomain) return;
+
+                currentDomain = selectedDomain;
+
+                // Update active class on sidebar items
+                document.querySelectorAll('.gaia-llm-sidebar-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.domainId === domainId) {
+                        item.classList.add('active');
+                    }
+                });
+
+                // Update main content title
+                mainContentTitle.textContent = `Interact with ${currentDomain.name}`;
+                // Update model description
+                modelDescription.textContent = currentDomain.description || 'No description available for this model.';
+
+
+                // Clear input and response
+                userInput.value = '';
+                llmResponse.innerHTML = 'Gaia domain\'s response will appear here.'; // Set innerHTML now
+                computeBtn.disabled = true; // Disable until input is provided
+
+                showLoading(false); // Hide loading indicator if active
+
+                console.log(`Active domain switched to: ${currentDomain.name}`);
+            }
+
+            // Shows/hides the loading indicator
+            function showLoading(isLoading) {
+                if (isLoading) {
+                    loadingIndicator.classList.add('active');
+                    llmResponse.style.display = 'none'; // Hide response text element
+                } else {
+                    loadingIndicator.classList.remove('active');
+                    llmResponse.style.display = 'block'; // Show response text element
+                }
+                computeBtn.disabled = isLoading || userInput.value.trim() === '';
+            }
+
+            // Handles the API call
+            async function handleCompute() {
+                const message = userInput.value.trim();
+                if (!currentDomain || !message) {
+                    alert('Please select a domain and enter a message.');
+                    return;
+                }
+
+                const cacheKey = `${currentDomain.id}_${message}`;
+                const cachedResponse = localStorage.getItem(cacheKey);
+
+                if (cachedResponse) {
+                    llmResponse.innerHTML = marked.parse(cachedResponse); // Parse cached Markdown
+                    console.log('Response loaded from cache.');
+                    return; // Exit if found in cache
+                }
+
+                showLoading(true);
+                llmResponse.innerHTML = ''; // Clear previous response content
+
+                try {
+                    const response = await fetch(`${currentDomain.baseUrl}/v1/chat/completions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${GAIA_API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model: currentDomain.model,
+                            messages: [{ role: 'user', content: message }],
+                            temperature: 0.7,
+                            max_tokens: 500,
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.message || JSON.stringify(errorData)}`);
+                    }
+
+                    const data = await response.json();
+                    const llmGeneratedText = data.choices[0]?.message?.content || 'No response from LLM.';
+
+                    // Parse Markdown to HTML and set to innerHTML
+                    llmResponse.innerHTML = marked.parse(llmGeneratedText);
+                    localStorage.setItem(cacheKey, llmGeneratedText); // Cache the raw Markdown response
+                    console.log('Response received and cached.');
+
+                } catch (error) {
+                    console.error('Error fetching LLM response:', error);
+                    llmResponse.innerHTML = `<p>Error: ${error.message || 'Could not get response.'}</p>`; // Wrap error in p tag
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            // --- Event Listeners ---
+            computeBtn.addEventListener('click', handleCompute);
+
+            userInput.addEventListener('input', () => {
+                computeBtn.disabled = userInput.value.trim() === '' || !currentDomain;
+            });
+
+            // --- Initialization ---
+            marked.setOptions({
+                gfm: true, // Use GitHub Flavored Markdown
+                breaks: true, // Render `\n` as `<br>`
+                sanitize: true // Sanitize the output HTML to prevent XSS attacks
+            });
+
+            renderSidebar();
+            // Set the first domain as active by default
+            if (domains.length > 0) {
+                setActiveDomain(domains[0].id);
+            }
+        });
+    </script>
+</body>
+</html>
